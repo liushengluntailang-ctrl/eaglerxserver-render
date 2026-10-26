@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 set -u
 
-# --- マイクラ本体の設定（Paper 1.12.2 を自動指定） ---
+# --- マイクラ本体の設定（メモリを384Mに拡大！） ---
 : "${PORT:=10000}"
 export SERVER_PORT="${PORT}"
 export TYPE="PAPER"
 export VERSION="1.12.2"
 export PAPER_BUILD="1620"
-export MEMORY="224M"
-export INIT_MEMORY="96M"
-export MAX_MEMORY="224M"
+export MEMORY="384M"
+export INIT_MEMORY="128M"
+export MAX_MEMORY="384M"
 export USE_AIKAR_FLAGS="false"
 export EULA="TRUE"
 export ENABLE_AUTOPAUSE="false"
@@ -49,7 +49,7 @@ backup_world() {
     fi
     echo "[AutoSave] Supabaseへセーブデータを保存中..."
     BACKUP_FILE="/tmp/world-latest.tar.gz"
-    tar -czf "$BACKUP_FILE" -C /data world world_nether world_the_end 2>/dev/null || true
+    tar -czf "$BACKUP_FILE" -C /data world world_nether world_the_end plugins/LoginSecurity 2>/dev/null || true
 
     RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
       "${SUPABASE_URL}/storage/v1/object/${SUPABASE_BUCKET}/world-latest.tar.gz" \
