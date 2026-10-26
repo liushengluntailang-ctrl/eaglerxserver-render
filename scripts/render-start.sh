@@ -1,31 +1,45 @@
 #!/usr/bin/env bash
 set -u
 
-# --- マイクラ本体の設定 ---
+# --- render.yaml の全設定をここに完全注入！ ---
 : "${PORT:=10000}"
 export SERVER_PORT="${PORT}"
+export EULA="TRUE"
 export TYPE="PAPER"
 export VERSION="1.12.2"
 export PAPER_BUILD="1620"
-export MEMORY="384M"
+export PAPER_CHANNEL="default"
+export MEMORY="256M"
 export INIT_MEMORY="128M"
-export MAX_MEMORY="384M"
-export USE_AIKAR_FLAGS="false"
-export EULA="TRUE"
+export MAX_MEMORY="256M"
+export JVM_OPTS="-XX:+UseSerialGC -XX:ActiveProcessorCount=1 -Xss192k -XX:MaxMetaspaceSize=96M -XX:MaxDirectMemorySize=48M -XX:ReservedCodeCacheSize=12M"
+export MALLOC_ARENA_MAX="1"
+export CLEAN_SERVER_LIBRARIES="false"
+export ONLINE_MODE="false"
+export ENABLE_RCON="false"
 export ENABLE_AUTOPAUSE="false"
 export ENABLE_AUTOSTOP="false"
+export USE_AIKAR_FLAGS="false"
+export MODE="survival"
+export DIFFICULTY="normal"
+export PVP="true"
+export MAX_PLAYERS="8"
+export VIEW_DISTANCE="4"
+export SPAWN_PROTECTION="0"
+export ALLOW_FLIGHT="true"
+export ENABLE_COMMAND_BLOCK="true"
+export MOTD="Eaglercraft Survival"
+
+# EaglerXServer + ログインセキュリティ + Web画面配信プラグインを完全自動ダウンロード！
+export PLUGINS="https://github.com/lax1dude/eaglerxserver/releases/download/v1.1.1/EaglerXServer.jar
+https://github.com/lenis0012/LoginSecurity/releases/download/v3.3.1/LoginSecurity-Spigot-3.3.1.jar
+https://github.com/lax1dude/eaglerxserver/releases/download/v1.1.1/EaglerWeb.jar"
 
 # マイクラのデータフォルダに移動
 cd /data 2>/dev/null || true
 
-# --- 1. Web画面配信プラグイン(EaglerWeb)のセットアップ ---
+# --- RenderのURLで開くマイクラ画面（HTML）を作成 ---
 mkdir -p /data/plugins/EaglerWeb/www 2>/dev/null || true
-if [ ! -f /data/plugins/EaglerWeb.jar ]; then
-    echo "[Setup] EaglerWebプラグインをダウンロード中..."
-    curl -sLo /data/plugins/EaglerWeb.jar "https://github.com/lax1dude/eaglerxserver/releases/download/v1.1.1/EaglerWeb.jar" || true
-fi
-
-# RenderのURLを開いたときに表示するHTMLを作成
 cat << 'EOF' > /data/plugins/EaglerWeb/index.html
 <!DOCTYPE html>
 <html style="width:100%;height:100%;margin:0;padding:0;overflow:hidden;background-color:#000;">
@@ -42,7 +56,7 @@ cat << 'EOF' > /data/plugins/EaglerWeb/index.html
             servers: [
                 {
                     addr: (location.protocol === "https:" ? "wss://" : "ws://") + location.host,
-                    name: "サバイバルサーバー"
+                    name: "サバイバル生活サーバー"
                 }
             ]
         };
@@ -53,7 +67,7 @@ cat << 'EOF' > /data/plugins/EaglerWeb/index.html
 EOF
 cp /data/plugins/EaglerWeb/index.html /data/plugins/EaglerWeb/www/index.html 2>/dev/null || true
 
-# --- 2. Supabaseから前回のセーブデータを復元 ---
+# --- Supabaseから前回のデータを復元 ---
 if [ -n "${SUPABASE_URL:-}" ] && [ -n "${SUPABASE_KEY:-}" ] && [ -n "${SUPABASE_BUCKET:-}" ]; then
     echo "[Restore] Supabaseから前回のセーブデータを復元中..."
     BACKUP_FILE="/tmp/world-latest.tar.gz"
@@ -72,7 +86,7 @@ if [ -n "${SUPABASE_URL:-}" ] && [ -n "${SUPABASE_KEY:-}" ] && [ -n "${SUPABASE_
     fi
 fi
 
-# --- 3. 定期バックアップ & 退出監視ループ（裏で実行） ---
+# --- 5分ごとの定期自動バックアップ（裏で実行） ---
 (
     while true; do
         sleep 300
@@ -91,6 +105,5 @@ fi
     done
 ) &
 
-# --- 4. マイクラサーバーを表（フォアグラウンド）で起動 ---
-# ここで詰まっていたのを exec で直通にしました！
+# --- マイクラサーバーを起動！ ---
 exec /image/scripts/start "$@"
