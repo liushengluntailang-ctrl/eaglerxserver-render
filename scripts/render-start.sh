@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -u
 
-# --- マイクラ本体の設定（メモリを384Mに拡大！） ---
+# --- マイクラ本体の設定 ---
 : "${PORT:=10000}"
 export SERVER_PORT="${PORT}"
 export TYPE="PAPER"
@@ -17,6 +17,41 @@ export ENABLE_AUTOSTOP="false"
 
 # マイクラのデータフォルダに移動
 cd /data 2>/dev/null || true
+
+# --- 【新機能】RenderのURLで直接マイクラ画面を配信する設定 ---
+mkdir -p /data/plugins/EaglerWeb/www 2>/dev/null || true
+if [ ! -f /data/plugins/EaglerWeb.jar ]; then
+    echo "[Setup] Web画面配信プラグイン(EaglerWeb)を導入中..."
+    curl -sLo /data/plugins/EaglerWeb.jar "https://github.com/lax1dude/eaglerxserver/releases/download/v1.1.1/EaglerWeb.jar" || true
+fi
+
+# RenderのURLを開いた時に表示するHTML画面を自動生成
+cat << 'EOF' > /data/plugins/EaglerWeb/index.html
+<!DOCTYPE html>
+<html style="width:100%;height:100%;margin:0;padding:0;overflow:hidden;background-color:#000;">
+<head>
+    <meta charset="UTF-8">
+    <title>Portal</title>
+</head>
+<body style="width:100%;height:100%;margin:0;padding:0;overflow:hidden;">
+    <script type="text/javascript">
+        window.eaglercraftXOpts = {
+            container: "game_frame",
+            assetsURI: "https://r2.eaglercraft.com/assets.epk",
+            localesURI: "https://r2.eaglercraft.com/lang/",
+            servers: [
+                {
+                    addr: (location.protocol === "https:" ? "wss://" : "ws://") + location.host,
+                    name: "サバイバルサーバー"
+                }
+            ]
+        };
+    </script>
+    <iframe id="game_frame" src="https://g.deev.is/eaglercraftX/1.8/" style="border:none;width:100%;height:100%;"></iframe>
+</body>
+</html>
+EOF
+cp /data/plugins/EaglerWeb/index.html /data/plugins/EaglerWeb/www/index.html 2>/dev/null || true
 
 # --- 【関数】Supabaseからデータを自動復元 ---
 restore_world() {
@@ -87,7 +122,7 @@ SERVER_PID=$!
 
 # 4. 退出検知 & !save 監視
 (
-    sleep 20
+    sleep 25
     touch /data/logs/latest.log 2>/dev/null || true
     tail -n 0 -F /data/logs/latest.log 2>/dev/null | while read -r line; do
         if echo "$line" | grep -q -E "(lost connection|left the game|!save|/world save)"; then
