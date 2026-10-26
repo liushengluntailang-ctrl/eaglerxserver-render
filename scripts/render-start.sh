@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -u
 
-# --- render.yaml の全設定をここに完全注入！ ---
+# --- render.yaml の全設定 ---
 : "${PORT:=10000}"
 export SERVER_PORT="${PORT}"
 export EULA="TRUE"
@@ -30,16 +30,19 @@ export ALLOW_FLIGHT="true"
 export ENABLE_COMMAND_BLOCK="true"
 export MOTD="Eaglercraft Survival"
 
-# EaglerXServer + ログインセキュリティ + Web画面配信プラグインを完全自動ダウンロード！
-export PLUGINS="https://github.com/lax1dude/eaglerxserver/releases/download/v1.1.1/EaglerXServer.jar
-https://github.com/lenis0012/LoginSecurity/releases/download/v3.3.1/LoginSecurity-Spigot-3.3.1.jar
-https://github.com/lax1dude/eaglerxserver/releases/download/v1.1.1/EaglerWeb.jar"
-
-# マイクラのデータフォルダに移動
+# 作業ディレクトリ移動
 cd /data 2>/dev/null || true
-
-# --- RenderのURLで開くマイクラ画面（HTML）を作成 ---
 mkdir -p /data/plugins/EaglerWeb/www 2>/dev/null || true
+
+# --- 1. プラグインを直接ダウンロード（確実に進める！） ---
+echo "[1/4] プラグインをダウンロード中..."
+curl -fsSL -o /data/plugins/EaglerXServer.jar "https://github.com/lax1dude/eaglerxserver/releases/download/v1.1.1/EaglerXServer.jar" || echo "EaglerXServer DL失敗"
+curl -fsSL -o /data/plugins/LoginSecurity.jar "https://github.com/lenis0012/LoginSecurity/releases/download/v3.3.1/LoginSecurity-Spigot-3.3.1.jar" || echo "LoginSecurity DL失敗"
+curl -fsSL -o /data/plugins/EaglerWeb.jar "https://github.com/lax1dude/eaglerxserver/releases/download/v1.1.1/EaglerWeb.jar" || echo "EaglerWeb DL失敗"
+echo "[1/4] プラグインのダウンロード完了！"
+
+# --- 2. Web画面（HTML）を作成 ---
+echo "[2/4] Web画面（HTML）を作成中..."
 cat << 'EOF' > /data/plugins/EaglerWeb/index.html
 <!DOCTYPE html>
 <html style="width:100%;height:100%;margin:0;padding:0;overflow:hidden;background-color:#000;">
@@ -66,10 +69,11 @@ cat << 'EOF' > /data/plugins/EaglerWeb/index.html
 </html>
 EOF
 cp /data/plugins/EaglerWeb/index.html /data/plugins/EaglerWeb/www/index.html 2>/dev/null || true
+echo "[2/4] Web画面作成完了！"
 
-# --- Supabaseから前回のデータを復元 ---
+# --- 3. Supabaseから前回のデータを復元 ---
+echo "[3/4] Supabaseからセーブデータを確認中..."
 if [ -n "${SUPABASE_URL:-}" ] && [ -n "${SUPABASE_KEY:-}" ] && [ -n "${SUPABASE_BUCKET:-}" ]; then
-    echo "[Restore] Supabaseから前回のセーブデータを復元中..."
     BACKUP_FILE="/tmp/world-latest.tar.gz"
     HTTP_STATUS=$(curl -s -w "%{http_code}" -o "$BACKUP_FILE" -X GET \
       "${SUPABASE_URL}/storage/v1/object/authenticated/${SUPABASE_BUCKET}/world-latest.tar.gz" \
@@ -78,15 +82,16 @@ if [ -n "${SUPABASE_URL:-}" ] && [ -n "${SUPABASE_KEY:-}" ] && [ -n "${SUPABASE_
 
     if [ "$HTTP_STATUS" -eq 200 ]; then
         echo "[Restore] セーブデータを復元しました！"
-        tar -xzf "$BACKUP_FILE" -C /data
+        tar -xzf "$BACKUP_FILE" -C /data 2>/dev/null || true
         rm -f "$BACKUP_FILE"
     else
         echo "[Restore] 前回のセーブデータはありません。新規開始します。"
         rm -f "$BACKUP_FILE"
     fi
 fi
+echo "[3/4] データ復元処理完了！"
 
-# --- 5分ごとの定期自動バックアップ（裏で実行） ---
+# --- 4. 定期自動バックアップループ（裏で実行） ---
 (
     while true; do
         sleep 300
@@ -105,5 +110,6 @@ fi
     done
 ) &
 
-# --- マイクラサーバーを起動！ ---
+# --- 5. マイクラサーバー起動！ ---
+echo "[4/4] マイクラサーバーを起動します..."
 exec /image/scripts/start "$@"
