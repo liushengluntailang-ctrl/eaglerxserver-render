@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -u
 
-# --- render.yaml の全設定 ---
+# --- 通信ポートと規約同意 ---
 : "${PORT:=10000}"
 export SERVER_PORT="${PORT}"
 export EULA="TRUE"
@@ -9,11 +9,13 @@ export TYPE="PAPER"
 export VERSION="1.12.2"
 export PAPER_BUILD="1620"
 export PAPER_CHANNEL="default"
-export MEMORY="256M"
+
+# --- メモリ制限を256Mから「384M」に拡大して固まりを解消！ ---
+export MEMORY="384M"
 export INIT_MEMORY="128M"
-export MAX_MEMORY="256M"
-export JVM_OPTS="-XX:+UseSerialGC -XX:ActiveProcessorCount=1 -Xss192k -XX:MaxMetaspaceSize=96M -XX:MaxDirectMemorySize=48M -XX:ReservedCodeCacheSize=12M"
-export MALLOC_ARENA_MAX="1"
+export MAX_MEMORY="384M"
+
+# --- サーバー設定 ---
 export CLEAN_SERVER_LIBRARIES="false"
 export ONLINE_MODE="false"
 export ENABLE_RCON="false"
@@ -34,11 +36,11 @@ export MOTD="Eaglercraft Survival"
 cd /data 2>/dev/null || true
 mkdir -p /data/plugins/EaglerWeb/www 2>/dev/null || true
 
-# --- 1. プラグインを直接ダウンロード（確実に進める！） ---
+# --- 1. プラグインをダウンロード ---
 echo "[1/4] プラグインをダウンロード中..."
-curl -fsSL -o /data/plugins/EaglerXServer.jar "https://github.com/lax1dude/eaglerxserver/releases/download/v1.1.1/EaglerXServer.jar" || echo "EaglerXServer DL失敗"
-curl -fsSL -o /data/plugins/LoginSecurity.jar "https://github.com/lenis0012/LoginSecurity/releases/download/v3.3.1/LoginSecurity-Spigot-3.3.1.jar" || echo "LoginSecurity DL失敗"
-curl -fsSL -o /data/plugins/EaglerWeb.jar "https://github.com/lax1dude/eaglerxserver/releases/download/v1.1.1/EaglerWeb.jar" || echo "EaglerWeb DL失敗"
+curl -fsSL -o /data/plugins/EaglerXServer.jar "https://github.com/lax1dude/eaglerxserver/releases/download/v1.1.1/EaglerXServer.jar" || echo "EaglerXServer DLスキップ"
+curl -fsSL -o /data/plugins/LoginSecurity.jar "https://github.com/lenis0012/LoginSecurity/releases/download/v3.3.1/LoginSecurity-Spigot-3.3.1.jar" || echo "LoginSecurity DLスキップ"
+curl -fsSL -o /data/plugins/EaglerWeb.jar "https://github.com/lax1dude/eaglerxserver/releases/download/v1.1.1/EaglerWeb.jar" || echo "EaglerWeb DLスキップ"
 echo "[1/4] プラグインのダウンロード完了！"
 
 # --- 2. Web画面（HTML）を作成 ---
@@ -91,7 +93,7 @@ if [ -n "${SUPABASE_URL:-}" ] && [ -n "${SUPABASE_KEY:-}" ] && [ -n "${SUPABASE_
 fi
 echo "[3/4] データ復元処理完了！"
 
-# --- 4. 定期自動バックアップループ（裏で実行） ---
+# --- 4. 5分ごとの定期自動バックアップ（裏で実行） ---
 (
     while true; do
         sleep 300
