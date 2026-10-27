@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -u
 
-# --- 通信ポートと規約同意 ---
+# --- render.yaml の全設定 ---
 : "${PORT:=10000}"
 export SERVER_PORT="${PORT}"
 export EULA="TRUE"
@@ -10,12 +10,14 @@ export VERSION="1.12.2"
 export PAPER_BUILD="1620"
 export PAPER_CHANNEL="default"
 
-# --- メモリ制限を256Mから「384M」に拡大して固まりを解消！ ---
+# --- メモリ制限（384M） ---
 export MEMORY="384M"
 export INIT_MEMORY="128M"
 export MAX_MEMORY="384M"
 
-# --- サーバー設定 ---
+# --- 起動を最速にする設定 ---
+export VIEW_DISTANCE="3"
+export SPAWN_PROTECTION="0"
 export CLEAN_SERVER_LIBRARIES="false"
 export ONLINE_MODE="false"
 export ENABLE_RCON="false"
@@ -26,8 +28,6 @@ export MODE="survival"
 export DIFFICULTY="normal"
 export PVP="true"
 export MAX_PLAYERS="8"
-export VIEW_DISTANCE="4"
-export SPAWN_PROTECTION="0"
 export ALLOW_FLIGHT="true"
 export ENABLE_COMMAND_BLOCK="true"
 export MOTD="Eaglercraft Survival"
@@ -36,12 +36,22 @@ export MOTD="Eaglercraft Survival"
 cd /data 2>/dev/null || true
 mkdir -p /data/plugins/EaglerWeb/www 2>/dev/null || true
 
+# --- 【爆速化】スポーンエリア準備(Preparing spawn area)をスキップする設定を注入 ---
+mkdir -p /data 2>/dev/null || true
+cat << 'EOF' > /data/paper.yml
+verbose: false
+config-version: 13
+world-settings:
+  default:
+    keep-spawn-loaded: false
+EOF
+
 # --- 1. プラグインをダウンロード ---
 echo "[1/4] プラグインをダウンロード中..."
 curl -fsSL -o /data/plugins/EaglerXServer.jar "https://github.com/lax1dude/eaglerxserver/releases/download/v1.1.1/EaglerXServer.jar" || echo "EaglerXServer DLスキップ"
 curl -fsSL -o /data/plugins/LoginSecurity.jar "https://github.com/lenis0012/LoginSecurity/releases/download/v3.3.1/LoginSecurity-Spigot-3.3.1.jar" || echo "LoginSecurity DLスキップ"
 curl -fsSL -o /data/plugins/EaglerWeb.jar "https://github.com/lax1dude/eaglerxserver/releases/download/v1.1.1/EaglerWeb.jar" || echo "EaglerWeb DLスキップ"
-echo "[1/4] プラグインのダウンロード完了！"
+echo "[1/4] プラグイン完了！"
 
 # --- 2. Web画面（HTML）を作成 ---
 echo "[2/4] Web画面（HTML）を作成中..."
@@ -91,7 +101,7 @@ if [ -n "${SUPABASE_URL:-}" ] && [ -n "${SUPABASE_KEY:-}" ] && [ -n "${SUPABASE_
         rm -f "$BACKUP_FILE"
     fi
 fi
-echo "[3/4] データ復元処理完了！"
+echo "[3/4] データ復元完了！"
 
 # --- 4. 5分ごとの定期自動バックアップ（裏で実行） ---
 (
