@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -u
 
-# --- render.yaml の全設定 ---
+# --- 通信ポートと規約同意 ---
 : "${PORT:=10000}"
 export SERVER_PORT="${PORT}"
 export EULA="TRUE"
@@ -14,10 +14,13 @@ export PAPER_CHANNEL="default"
 export MEMORY="384M"
 export INIT_MEMORY="128M"
 export MAX_MEMORY="384M"
+export JVM_OPTS="-XX:+UseSerialGC -XX:ActiveProcessorCount=1 -Xss192k -XX:MaxMetaspaceSize=96M -XX:MaxDirectMemorySize=48M -XX:ReservedCodeCacheSize=12M"
+export MALLOC_ARENA_MAX="1"
 
-# --- 起動を最速にする設定 ---
-export VIEW_DISTANCE="3"
+# --- 【超重要】計算量を4分の1にしてタイムアウトを回避！ ---
+export VIEW_DISTANCE="2"
 export SPAWN_PROTECTION="0"
+export MAX_PLAYERS="4"
 export CLEAN_SERVER_LIBRARIES="false"
 export ONLINE_MODE="false"
 export ENABLE_RCON="false"
@@ -27,7 +30,6 @@ export USE_AIKAR_FLAGS="false"
 export MODE="survival"
 export DIFFICULTY="normal"
 export PVP="true"
-export MAX_PLAYERS="8"
 export ALLOW_FLIGHT="true"
 export ENABLE_COMMAND_BLOCK="true"
 export MOTD="Eaglercraft Survival"
@@ -36,21 +38,11 @@ export MOTD="Eaglercraft Survival"
 cd /data 2>/dev/null || true
 mkdir -p /data/plugins/EaglerWeb/www 2>/dev/null || true
 
-# --- 【爆速化】スポーンエリア準備(Preparing spawn area)をスキップする設定を注入 ---
-mkdir -p /data 2>/dev/null || true
-cat << 'EOF' > /data/paper.yml
-verbose: false
-config-version: 13
-world-settings:
-  default:
-    keep-spawn-loaded: false
-EOF
-
 # --- 1. プラグインをダウンロード ---
-echo "[1/4] プラグインをダウンロード中..."
-curl -fsSL -o /data/plugins/EaglerXServer.jar "https://github.com/lax1dude/eaglerxserver/releases/download/v1.1.1/EaglerXServer.jar" || echo "EaglerXServer DLスキップ"
-curl -fsSL -o /data/plugins/LoginSecurity.jar "https://github.com/lenis0012/LoginSecurity/releases/download/v3.3.1/LoginSecurity-Spigot-3.3.1.jar" || echo "LoginSecurity DLスキップ"
-curl -fsSL -o /data/plugins/EaglerWeb.jar "https://github.com/lax1dude/eaglerxserver/releases/download/v1.1.1/EaglerWeb.jar" || echo "EaglerWeb DLスキップ"
+echo "[1/4] プラグインを準備中..."
+curl -fsSL -o /data/plugins/EaglerXServer.jar "https://github.com/lax1dude/eaglerxserver/releases/download/v1.1.1/EaglerXServer.jar" || true
+curl -fsSL -o /data/plugins/LoginSecurity.jar "https://github.com/lenis0012/LoginSecurity/releases/download/v3.3.1/LoginSecurity-Spigot-3.3.1.jar" || true
+curl -fsSL -o /data/plugins/EaglerWeb.jar "https://github.com/lax1dude/eaglerxserver/releases/download/v1.1.1/EaglerWeb.jar" || true
 echo "[1/4] プラグイン完了！"
 
 # --- 2. Web画面（HTML）を作成 ---
@@ -71,7 +63,7 @@ cat << 'EOF' > /data/plugins/EaglerWeb/index.html
             servers: [
                 {
                     addr: (location.protocol === "https:" ? "wss://" : "ws://") + location.host,
-                    name: "サバイバル生活サーバー"
+                    name: "サバイバルサーバー"
                 }
             ]
         };
@@ -97,7 +89,7 @@ if [ -n "${SUPABASE_URL:-}" ] && [ -n "${SUPABASE_KEY:-}" ] && [ -n "${SUPABASE_
         tar -xzf "$BACKUP_FILE" -C /data 2>/dev/null || true
         rm -f "$BACKUP_FILE"
     else
-        echo "[Restore] 前回のセーブデータはありません。新規開始します。"
+        echo "[Restore] 新規ワールドで開始します。"
         rm -f "$BACKUP_FILE"
     fi
 fi
