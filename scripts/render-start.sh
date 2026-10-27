@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -u
 
-# --- 通信ポートと規約同意 ---
+# --- 基本設定 ---
 : "${PORT:=10000}"
 export SERVER_PORT="${PORT}"
 export EULA="TRUE"
@@ -10,14 +10,12 @@ export VERSION="1.12.2"
 export PAPER_BUILD="1620"
 export PAPER_CHANNEL="default"
 
-# --- メモリ制限（384M） ---
+# --- メモリ設定（44%まで進んだ時の安全な設定） ---
 export MEMORY="384M"
 export INIT_MEMORY="128M"
 export MAX_MEMORY="384M"
-export JVM_OPTS="-XX:+UseSerialGC -XX:ActiveProcessorCount=1 -Xss192k -XX:MaxMetaspaceSize=96M -XX:MaxDirectMemorySize=48M -XX:ReservedCodeCacheSize=12M"
-export MALLOC_ARENA_MAX="1"
 
-# --- 【超重要】計算量を4分の1にしてタイムアウトを回避！ ---
+# --- タイムアウト回避（計算量を最小にして最速で立ち上げる） ---
 export VIEW_DISTANCE="2"
 export SPAWN_PROTECTION="0"
 export MAX_PLAYERS="4"
